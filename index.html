@@ -156,51 +156,40 @@
         const fechaInput = document.getElementById('fecha-reservorio').value;
         if(!fechaInput) { alert("Elige una fecha."); return; }
 
-        const partes = fechaInput.split("-");
+        const partes = fechaInput.split("-"); // [2026, 03, 03]
         const anio = partes[0];
         const mesNum = partes[1];
         const dia = partes[2];
-        const diaSinCero = parseInt(dia, 10).toString();
         
         const meses = ["01_Enero", "02_Febrero", "03_Marzo", "04_Abril", "05_Mayo", "06_Junio", "07_Julio", "08_Agosto", "09_Septiembre", "10_Octubre", "11_Noviembre", "12_Diciembre"];
         const nombreMes = meses[parseInt(mesNum) - 1];
         
-        // Formatos a probar: 02-03-2026.xlsx, 2-03-2026.xlsx, etc.
-        const variantes = [
-            `${dia}-${mesNum}-${anio}.xlsx`,
-            `${diaSinCero}-${mesNum}-${anio}.xlsx`,
-            `${dia}-${mesNum}-${anio}.XLSX`,
-            `${diaSinCero}-${mesNum}-${anio}.XLSX`
-        ];
+        // CORRECCIÓN DE RUTA: Eliminada la carpeta /main/ y ajustado el orden estricto
+        const filename = `${dia}-${mesNum}-${anio}.xlsx`;
+        const url = `https://raw.githubusercontent.com/${USUARIO}/${REPO}/main/data/${anio}/${nombreMes}/${filename}`;
 
         document.getElementById('file-count').innerText = "⌛ Buscando...";
 
-        let exito = false;
-        for (const filename of [...new Set(variantes)]) {
-            const url = `https://raw.githubusercontent.com/${USUARIO}/${REPO}/main/data/${anio}/${nombreMes}/${filename}`;
-            try {
-                const response = await fetch(url);
-                if(response.ok) {
-                    const buffer = await response.arrayBuffer();
-                    const data = new Uint8Array(buffer);
-                    const wb = XLSX.read(data, {type: 'array', cellDates: true});
-                    const sheet = wb.Sheets["CPRII"];
-                    if(sheet) {
-                        const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""});
-                        procesarFilasDirecto(rows); 
-                        document.getElementById('file-count').innerText = `✅ Cargado: ${filename}`;
-                        actualizarSelector();
-                        aplicarFiltro();
-                        exito = true;
-                        break;
-                    }
-                }
-            } catch (e) { continue; }
-        }
+        try {
+            const response = await fetch(url);
+            if(!response.ok) throw new Error("Archivo no encontrado en el servidor.");
+            
+            const buffer = await response.arrayBuffer();
+            const data = new Uint8Array(buffer);
+            const wb = XLSX.read(data, {type: 'array', cellDates: true});
+            const sheet = wb.Sheets["CPRII"];
+            
+            if(!sheet) throw new Error("La hoja 'CPRII' no existe en este archivo.");
 
-        if(!exito) {
-            alert(`Error: No se encontró el archivo en ninguna de sus variantes (02-03... o 2-03...) en la carpeta ${nombreMes}.`);
-            document.getElementById('file-count').innerText = "❌ No encontrado.";
+            const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""});
+            procesarFilasDirecto(rows); 
+            
+            document.getElementById('file-count').innerText = `✅ Cargado: ${filename}`;
+            actualizarSelector();
+            aplicarFiltro();
+        } catch (e) {
+            alert(`Error: No se encontró el archivo en la ruta:\n${url}`);
+            document.getElementById('file-count').innerText = "❌ Error.";
         }
     }
 
