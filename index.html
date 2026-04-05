@@ -105,14 +105,13 @@
         const anio = partes[0];
         const mesNum = partes[1];
         
-        // Mapeo de meses para la carpeta
         const meses = ["01_Enero", "02_Febrero", "03_Marzo", "04_Abril", "05_Mayo", "06_Junio", "07_Julio", "08_Agosto", "09_Septiembre", "10_Octubre", "11_Noviembre", "12_Diciembre"];
         const nombreMes = meses[parseInt(mesNum) - 1];
 
-        // Formato del archivo: DD-MM-YYYY.xlsx
+        // Formato solicitado: DD-MM-YYYY.xlsx
         const fechaFormateada = `${partes[2]}-${partes[1]}-${partes[0]}`;
         
-        // RUTA FINAL: data/2026/03_Marzo/02-03-2026.xlsx
+        // Construcción de la ruta dinámica
         const url = `https://raw.githubusercontent.com/${USUARIO}/${REPO}/main/data/${anio}/${nombreMes}/${fechaFormateada}.xlsx`;
 
         document.getElementById('file-count').innerText = "⌛ Buscando...";
@@ -130,7 +129,7 @@
 
             const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""});
             
-            // SUMAR DATOS (Push) - Permite carga infinita
+            // Procesa y agrega al almacén actual (acumulativo)
             procesarFilas(rows);
             
             document.getElementById('file-count').innerText = `✅ Cargado: ${fechaFormateada}`;
@@ -138,8 +137,8 @@
             aplicarFiltro();
 
         } catch (e) {
-            alert(`Error: No se encontró el archivo en:\n${url}`);
-            document.getElementById('file-count').innerText = "❌ Error.";
+            alert(`Archivo no encontrado en el servidor.\nRuta intentada:\n${url}`);
+            document.getElementById('file-count').innerText = "❌ Error en carga.";
         }
     }
 
@@ -149,6 +148,7 @@
                 let nArt = String(r[12]).trim();
                 if (/^\d+$/.test(nArt)) {
                     let tn = (r[8] == "1") ? "MAÑANA" : (r[8] == "2") ? "TARDE" : (r[8] == "3") ? "NOCHE" : "S/D";
+                    // PUSH permite que los datos se sumen a los ya cargados
                     rawDataStore.push({
                         fecha: r[7], turno: tn, sap: parseFloat(r[10]) || 0, 
                         ot: r[11], n_art: nArt, articulo: r[13], nom: parseFloat(r[21]) || 0,
@@ -159,7 +159,6 @@
         });
     }
 
-    // --- FUNCIONES DE INTERFAZ ---
     function showTab(e, id) {
         document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -201,6 +200,7 @@
         const f = document.getElementById('fecha-selector').value;
         const d = f === "ALL" ? rawDataStore : rawDataStore.filter(x => (x.fecha instanceof Date ? x.fecha.toLocaleDateString() : x.fecha) === f);
         renderDash(d);
+        renderTabla(d);
     }
 
     const calcOEE = (n, p) => n > 0 ? ((p * 8) / (n * 6.5)) * 100 : 0;
@@ -211,19 +211,26 @@
         const gridCeco = document.getElementById('grid-ceco-kpis');
         bodyMem.innerHTML = ""; acordeon.innerHTML = ""; gridCeco.innerHTML = "";
         
-        if(data.length === 0) return;
+        if(data.length === 0) {
+            document.getElementById('dir-oee').innerText = "0%";
+            document.getElementById('oee-m').innerText = "0%";
+            document.getElementById('oee-t').innerText = "0%";
+            document.getElementById('oee-n').innerText = "0%";
+            return;
+        }
 
         let gN = 0, gP = 0;
         let tS = { "MAÑANA": {n:0, p:0}, "TARDE": {n:0, p:0}, "NOCHE": {n:0, p:0} };
         let cD = {};
 
         data.forEach(d => {
+            const fStr = d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha;
             gN += d.nom; gP += d.sap;
             if(tS[d.turno]) { tS[d.turno].n += d.nom; tS[d.turno].p += d.sap; }
             if(!cD[d.ceco]) cD[d.ceco] = { n: 0, p: 0, rows: [] };
             cD[d.ceco].n += d.nom; cD[d.ceco].p += d.sap;
             cD[d.ceco].rows.push(d);
-            bodyMem.innerHTML += `<tr><td>${d.fecha}</td><td>${d.ot}</td><td>${d.turno}</td><td>${d.ceco}</td><td>${d.nom}</td><td>${d.sap}</td><td>${calcOEE(d.nom, d.sap).toFixed(1)}%</td></tr>`;
+            bodyMem.innerHTML += `<tr><td>${fStr}</td><td>${d.ot}</td><td>${d.turno}</td><td>${d.ceco}</td><td>${d.nom}</td><td>${d.sap}</td><td>${calcOEE(d.nom, d.sap).toFixed(1)}%</td></tr>`;
         });
 
         document.getElementById('dir-oee').innerText = calcOEE(gN, gP).toFixed(1) + "%";
@@ -240,6 +247,17 @@
         const labels = Object.keys(cD);
         const values = labels.map(l => calcOEE(cD[l].n, cD[l].p).toFixed(1));
         Plotly.newPlot('grafico-ceco-oee', [{x: labels, y: values, type:'bar', marker:{color:'#1a2a6c'}}], {title:'OEE por CECO'});
+    }
+
+    function renderTabla(data) {
+        const out = document.getElementById('out-tabla');
+        if(data.length === 0) { out.innerHTML = "No hay datos."; return; }
+        let h = `<table><thead><tr><th>Fecha</th><th>Turno</th><th>SAP</th><th>OT</th><th>Articulo</th><th>CECO</th></tr></thead><tbody>`;
+        data.forEach(d => {
+            const fStr = d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha;
+            h += `<tr><td>${fStr}</td><td>${d.turno}</td><td>${d.sap}</td><td>${d.ot}</td><td>${d.articulo}</td><td>${d.ceco}</td></tr>`;
+        });
+        out.innerHTML = h + `</tbody></table>`;
     }
 </script>
 </body>
