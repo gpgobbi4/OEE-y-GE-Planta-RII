@@ -27,7 +27,6 @@
         .controls-bar { background: #fff; padding: 15px; display: flex; justify-content: center; gap: 20px; align-items: center; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 1000; flex-wrap: wrap; }
         .date-filter { padding: 8px 15px; border-radius: 6px; border: 2px solid var(--primary); font-weight: bold; color: var(--primary); cursor: pointer; }
         
-        /* Estilo para el botón de reservorio */
         .btn-reservorio { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
         
         .btn-reset { background: white; color: var(--danger); border: 2px solid var(--danger); padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
@@ -150,7 +149,6 @@
 <script>
     let rawDataStore = []; 
 
-    // --- CONFIGURACIÓN DE RUTA DINÁMICA (RESERVORIO) ---
     const USUARIO = "gpgobbi4";
     const REPO = "OEE-y-GE-Planta-RII";
 
@@ -161,10 +159,14 @@
         const partes = fechaInput.split("-");
         const anio = partes[0];
         const mesNum = partes[1];
+        
+        // CORRECCIÓN: Eliminar cero inicial del día para coincidir con archivos (ej: 3-03-2026)
+        const diaSinCero = parseInt(partes[2], 10); 
+        
         const meses = ["01_Enero", "02_Febrero", "03_Marzo", "04_Abril", "05_Mayo", "06_Junio", "07_Julio", "08_Agosto", "09_Septiembre", "10_Octubre", "11_Noviembre", "12_Diciembre"];
         const nombreMes = meses[parseInt(mesNum) - 1];
-        const fechaFormateada = `${partes[2]}-${partes[1]}-${partes[0]}`;
         
+        const fechaFormateada = `${diaSinCero}-${partes[1]}-${partes[0]}`;
         const url = `https://raw.githubusercontent.com/${USUARIO}/${REPO}/main/data/${anio}/${nombreMes}/${fechaFormateada}.xlsx`;
 
         document.getElementById('file-count').innerText = "⌛ Buscando...";
@@ -179,7 +181,7 @@
             if(!sheet) throw new Error("Hoja CPRII no existe");
 
             const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""});
-            procesarFilasDirecto(rows); // Procesa y suma al store
+            procesarFilasDirecto(rows); 
             
             document.getElementById('file-count').innerText = `✅ Cargado: ${fechaFormateada}`;
             actualizarSelector();
@@ -190,7 +192,6 @@
         }
     }
 
-    // Función interna para procesar filas sin repetir lógica
     function procesarFilasDirecto(rows) {
         rows.slice(1).forEach(r => {
             if (r.length > 10) {
@@ -206,8 +207,6 @@
             }
         });
     }
-
-    // --- FUNCIONES ORIGINALES DEL USUARIO ---
 
     function showTab(e, id) {
         document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
@@ -227,7 +226,7 @@
         document.getElementById('file-count').innerText = "";
         document.getElementById('fecha-selector').innerHTML = '<option value="ALL">CONSOLIDADO TOTAL</option>';
         aplicarFiltro();
-        alert("Datos limpiados. Puede subir archivos nuevos.");
+        alert("Datos limpiados.");
     }
 
     document.getElementById('upload').addEventListener('change', async function(e) {
@@ -295,7 +294,7 @@
             const fStr = d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha;
             globalNom += d.nom; globalProd += d.sap;
             if(tStats[d.turno]) { tStats[d.turno].n += d.nom; tStats[d.turno].p += d.sap; }
-            if(!cecoData[d.ceco]) ccoData[d.ceco] = { n: 0, p: 0, rows: [] };
+            if(!cecoData[d.ceco]) cecoData[d.ceco] = { n: 0, p: 0, rows: [] };
             cecoData[d.ceco].n += d.nom; cecoData[d.ceco].p += d.sap;
             cecoData[d.ceco].rows.push(d);
             bodyMem.innerHTML += `<tr><td>${fStr}</td><td>${d.ot}</td><td>${d.turno}</td><td>${d.ceco}</td><td>${d.nom}</td><td>${d.sap}</td><td style="font-weight:bold">${calcOEE(d.nom, d.sap).toFixed(1)}%</td><td>${calcGE(d.nom, d.sap).toFixed(1)}%</td></tr>`;
