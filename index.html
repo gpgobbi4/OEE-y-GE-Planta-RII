@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Registros Infinitos - Excel</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* Estilos CSS Integrados */
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #27ae60;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 1000px;
+            text-align: center;
+        }
+
+        .search-box {
+            background: #ebeef0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        input[type="date"] {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #219150;
+        }
+
+        .table-container {
+            margin-top: 20px;
+            overflow-x: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        /* Estilos para la tabla de Excel generada */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .info-msg {
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .error-msg {
+            color: #e74c3c;
+            font-weight: bold;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 style="color: var(--primary-color);">Visor de Registros Diarios</h2>
+        <p>Búsqueda en formato DD/MM/AAAA mediante carpetas jerárquicas.</p>
+
+        <div class="search-box">
+            <label for="fechaBusqueda">Seleccionar Día:</label>
+            <input type="date" id="fechaBusqueda">
+            <button onclick="procesarBusqueda()">Consultar Registro</button>
+        </div>
+
+        <div id="status-area"></div>
+        
+        <div id="resultado" class="table-container">
+            <p class="info-msg">Seleccione una fecha para visualizar el contenido del Excel.</p>
+        </div>
+    </div>
+
+    <script>
+        /* Lógica JavaScript Integrada */
+        async function procesarBusqueda() {
+            const fechaInput = document.getElementById('fechaBusqueda').value;
+            const contenedor = document.getElementById('resultado');
+            const statusArea = document.getElementById('status-area');
+
+            if (!fechaInput) {
+                alert("Por favor, selecciona una fecha válida.");
+                return;
+            }
+
+            // 1. Extraer componentes de la fecha (YYYY-MM-DD del input)
+            const partes = fechaInput.split('-');
+            const anio = partes[0];
+            const mes = partes[1];
+            const dia = partes[2];
+
+            // 2. Construir la ruta según tu requerimiento DD/MM/AAAA
+            // IMPORTANTE: En GitHub las carpetas no pueden tener "/" en el nombre del ARCHIVO, 
+            // pero sí en la ESTRUCTURA DE CARPETAS.
+            // Ruta: data / AAAA / MM / DD-MM-AAAA.xlsx
+            const nombreArchivo = `${dia}-${mes}-${anio}.xlsx`;
+            const rutaFinal = `data/${anio}/${mes}/${nombreArchivo}`;
+
+            contenedor.innerHTML = "<p>Cargando datos desde el servidor...</p>";
+            statusArea.innerHTML = `<small>Buscando en: <strong>${rutaFinal}</strong></small>`;
+
+            try {
+                // 3. Petición al servidor (GitHub)
+                const response = await fetch(rutaFinal);
+                
+                if (!response.ok) {
+                    throw new Error(`No se encontró el archivo para el día ${dia}/${mes}/${anio}. <br> Verifica que la ruta 'data/${anio}/${mes}/' sea correcta.`);
+                }
+
+                // 4. Leer el binario del Excel
+                const dataArray = await response.arrayBuffer();
+                
+                // 5. Procesar con SheetJS
+                const libro = XLSX.read(dataArray, { type: 'array' });
+                
+                // Obtenemos la primera hoja
+                const nombreHoja = libro.SheetNames[0];
+                const hoja = libro.Sheets[nombreHoja];
+
+                // 6. Convertir a HTML
+                const htmlTable = XLSX.utils.sheet_to_html(hoja);
+                
+                contenedor.innerHTML = htmlTable;
+
+            } catch (error) {
+                contenedor.innerHTML = `<p class="error-msg">${error.message}</p>`;
+            }
+        }
+    </script>
+
+</body>
+</html>
