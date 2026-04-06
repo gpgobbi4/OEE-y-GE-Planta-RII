@@ -7,12 +7,6 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a2a6c">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-      }
-    </script>
-
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <style>
@@ -26,24 +20,24 @@
         header { background: var(--primary); color: white; padding: 15px; text-align: center; }
         .controls-bar { background: #fff; padding: 15px; display: flex; justify-content: center; gap: 20px; align-items: center; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 1000; flex-wrap: wrap; }
         
-        /* ESTILO DEL SELECTOR COLAPSABLE REINTEGRADO */
+        /* SELECTOR PERSONALIZADO */
         .custom-select-container { position: relative; min-width: 220px; }
         .select-trigger { padding: 8px 15px; border-radius: 6px; border: 2px solid var(--primary); font-weight: bold; color: var(--primary); cursor: pointer; background: white; display: flex; justify-content: space-between; align-items: center; }
         .select-dropdown { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-radius: 0 0 6px 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; z-index: 2000; }
         .select-dropdown.show { display: block; }
         .month-group { border-bottom: 1px solid #eee; }
-        .month-label { padding: 8px 12px; background: #f8f9fa; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; font-size: 0.8rem; }
+        .month-label { padding: 8px 12px; background: #f8f9fa; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; font-size: 0.8rem; border-left: 3px solid var(--accent); }
         .month-label:hover { background: #edf2f7; }
         .dates-container { display: none; background: white; }
         .dates-container.open { display: block; }
-        .date-option { padding: 6px 20px; cursor: pointer; border-bottom: 1px solid #fafafa; font-size: 0.85rem; }
-        .date-option:hover { background: #e0f2fe; }
-        .all-option { padding: 10px; font-weight: bold; color: var(--primary); cursor: pointer; border-bottom: 2px solid #eee; }
-        
+        .date-option { padding: 6px 25px; cursor: pointer; border-bottom: 1px solid #fafafa; font-size: 0.85rem; }
+        .date-option:hover { background: #e0f2fe; color: var(--primary); }
+        .all-option { padding: 10px; font-weight: bold; color: var(--primary); cursor: pointer; border-bottom: 2px solid #eee; background: #fff; }
+        .all-option:hover { background: #f0f2f5; }
+
         .date-filter { padding: 8px 15px; border-radius: 6px; border: 2px solid var(--primary); font-weight: bold; color: var(--primary); cursor: pointer; }
         .btn-reservorio { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-reset { background: white; color: var(--danger); border: 2px solid var(--danger); padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-        .btn-reset:hover { background: var(--danger); color: white; }
+        .btn-reset { background: white; color: var(--danger); border: 2px solid var(--danger); padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
         
         .tabs { display: flex; justify-content: center; background: #fff; border-bottom: 2px solid #ddd; position: sticky; top: 72px; z-index: 100; }
         .tab-btn { padding: 12px 20px; cursor: pointer; border: none; background: none; font-weight: bold; color: #666; font-size: 0.85rem; }
@@ -58,7 +52,6 @@
         .card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
         .card.turno-m { border-top: 5px solid var(--m); } .card.turno-t { border-top: 5px solid var(--t); } .card.turno-n { border-top: 5px solid var(--n); }
         .card.ceco-card { border-top: 5px solid var(--accent); }
-        .card h3 { font-size: 0.75rem; margin: 5px 0; color: #666; text-transform: uppercase; }
         .card .value { font-size: 1.5rem; font-weight: bold; }
 
         .ceco-group { margin-bottom: 10px; border-radius: 8px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); scroll-margin-top: 150px; }
@@ -69,11 +62,8 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
         th { background: #f8f9fa; position: sticky; top: 0; }
-
         .highlight-select { background-color: #e0f2fe !important; animation: pulse-highlight 1.5s ease-out; }
         @keyframes pulse-highlight { 0% { background-color: #e0f2fe; } 50% { background-color: #bae6fd; } 100% { background-color: #e0f2fe; } }
-
-        .js-plotly-plot .plotly .draglayer .nsewdrag, .js-plotly-plot .plotly .point { cursor: pointer !important; }
         .status-msg { font-size: 0.8rem; color: var(--success); font-weight: bold; margin-left: 10px; }
     </style>
 </head>
@@ -108,15 +98,15 @@
 </div>
 
 <div class="tabs">
-    <button class="tab-btn active" onclick="showTab(event, 'tab-directorio')">🚀 DASHBOARD INTERACTIVO</button>
-    <button class="tab-btn" onclick="showTab(event, 'tab-memoria')">🧮 MEMORIA DE CÁLCULO</button>
-    <button class="tab-btn" onclick="showTab(event, 'tab-tabla')">📋 TABLA ACUMULADA</button>
+    <button class="tab-btn active" onclick="showTab(event, 'tab-directorio')">🚀 DASHBOARD</button>
+    <button class="tab-btn" onclick="showTab(event, 'tab-memoria')">🧮 MEMORIA</button>
+    <button class="tab-btn" onclick="showTab(event, 'tab-tabla')">📋 TABLA</button>
 </div>
 
 <div class="container">
     <div id="tab-directorio" class="content active">
         <div class="kpi-main"><h3>OEE GLOBAL ACUMULADO</h3><div id="dir-oee" class="value">0%</div></div>
-        <div class="section-title">OEE POR TURNO (TOTALIZADO)</div>
+        <div class="section-title">OEE POR TURNO</div>
         <div class="grid-kpis">
             <div class="card turno-m"><h3>Mañana</h3><div id="oee-m" class="value">0%</div></div>
             <div class="card turno-t"><h3>Tarde</h3><div id="oee-t" class="value">0%</div></div>
@@ -140,7 +130,7 @@
     </div>
 
     <div id="tab-tabla" class="content">
-        <div id="out-tabla" style="overflow-x:auto; background:white; padding:10px; border-radius:8px;">Suba uno o más archivos para comenzar...</div>
+        <div id="out-tabla" style="overflow-x:auto; background:white; padding:10px; border-radius:8px;">Suba archivos...</div>
     </div>
 </div>
 
@@ -155,17 +145,23 @@
         await cargarAnioCompleto();
         actualizarSelector();
         aplicarFiltro();
-        document.getElementById('file-count').innerText = "✅ Listo";
+        document.getElementById('file-count').innerText = "✅ Datos actualizados";
     });
 
-    window.onclick = function(event) {
-        if (!event.target.closest('.custom-select-container')) {
-            document.getElementById("select-dropdown").classList.remove("show");
-        }
-    }
+    // CIERRE AUTOMÁTICO DE DROPDOWN
+    window.onclick = (e) => { if (!e.target.closest('.custom-select-container')) document.getElementById("select-dropdown").classList.remove("show"); }
 
     function toggleDropdown() { document.getElementById("select-dropdown").classList.toggle("show"); }
-    function toggleMes(id, event) { event.stopPropagation(); document.getElementById(id).classList.toggle('open'); }
+    
+    // FUNCION DE ACORDEÓN PARA MESES
+    function toggleMes(id, event) { 
+        event.stopPropagation(); 
+        const container = document.getElementById(id);
+        const isOpen = container.classList.contains('open');
+        // Cerrar otros meses si se desea (opcional)
+        document.querySelectorAll('.dates-container').forEach(el => el.classList.remove('open'));
+        if(!isOpen) container.classList.add('open');
+    }
 
     function seleccionarFecha(valor, etiqueta) {
         filtroActual = valor;
@@ -194,7 +190,7 @@
         container.innerHTML = "";
         mesesNombres.forEach((mes, idx) => {
             if (grupos[mes]) {
-                const mesId = `mes-${idx}`;
+                const mesId = `mes-drop-${idx}`;
                 container.innerHTML += `
                     <div class="month-group">
                         <div class="month-label" onclick="toggleMes('${mesId}', event)"><span>📂 ${mes.toUpperCase()}</span><span>▼</span></div>
@@ -274,10 +270,9 @@
         });
 
         document.getElementById('dir-oee').innerText = calcOEE(gn, gp).toFixed(1) + "%";
-        ["MAÑANA", "TARDE", "NOCHE"].forEach(t => {
-            const el = document.getElementById(`oee-${t.charAt(0).toLowerCase()}`);
-            if(el) el.innerText = calcOEE(ts[t].n, ts[t].p).toFixed(1) + "%";
-        });
+        if(document.getElementById('oee-m')) document.getElementById('oee-m').innerText = calcOEE(ts["MAÑANA"].n, ts["MAÑANA"].p).toFixed(1) + "%";
+        if(document.getElementById('oee-t')) document.getElementById('oee-t').innerText = calcOEE(ts["TARDE"].n, ts["TARDE"].p).toFixed(1) + "%";
+        if(document.getElementById('oee-n')) document.getElementById('oee-n').innerText = calcOEE(ts["NOCHE"].n, ts["NOCHE"].p).toFixed(1) + "%";
 
         Object.keys(cd).sort().forEach((ceco, i) => {
             const oee = calcOEE(cd[ceco].n, cd[ceco].p).toFixed(1);
