@@ -26,16 +26,16 @@
         header { background: var(--primary); color: white; padding: 15px; text-align: center; }
         .controls-bar { background: #fff; padding: 15px; display: flex; justify-content: center; gap: 20px; align-items: center; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 1000; flex-wrap: wrap; }
         
-        /* ESTILOS DEL SELECTOR DE VISTA (MEJORADO) */
-        .custom-select-container { position: relative; min-width: 250px; display: inline-block; vertical-align: middle; }
+        /* ESTILOS NUEVOS PARA EL SELECTOR AGRUPADO (Respetando tu estética) */
+        .custom-select-container { position: relative; min-width: 250px; }
         .select-trigger { padding: 8px 15px; border-radius: 6px; border: 2px solid var(--primary); font-weight: bold; color: var(--primary); cursor: pointer; background: white; display: flex; justify-content: space-between; align-items: center; }
-        .select-dropdown { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-radius: 0 0 6px 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; z-index: 2000; }
+        .select-dropdown { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 400px; overflow-y: auto; z-index: 2000; }
         .select-dropdown.show { display: block; }
         .month-group { border-bottom: 1px solid #eee; }
-        .month-label { padding: 10px 15px; background: #f8f9fa; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; border-left: 4px solid var(--accent); }
+        .month-label { padding: 10px 15px; background: #f8f9fa; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; border-left: 5px solid var(--accent); }
         .dates-container { display: none; background: white; }
         .dates-container.open { display: block; }
-        .date-option { padding: 8px 30px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+        .date-option { padding: 8px 30px; cursor: pointer; border-bottom: 1px solid #f9f9f9; }
         .date-option:hover { background: #e0f2fe; }
         .all-option { padding: 10px; font-weight: bold; color: var(--primary); cursor: pointer; text-align: center; border-bottom: 2px solid #ddd; }
 
@@ -47,6 +47,7 @@
         .tab-btn.active { color: var(--primary); border-bottom: 4px solid var(--primary); background: #f8f9fa; }
         .container { padding: 15px; max-width: 1300px; margin: auto; }
         .content { display: none; } .content.active { display: block; }
+        
         .kpi-main { background: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; border: 2px solid var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .kpi-main .value { font-size: 3rem; font-weight: bold; color: var(--primary); }
         .section-title { margin: 20px 0 10px; font-weight: bold; color: #555; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
@@ -56,19 +57,27 @@
         .card.ceco-card { border-top: 5px solid var(--accent); }
         .card h3 { font-size: 0.75rem; margin: 5px 0; color: #666; text-transform: uppercase; }
         .card .value { font-size: 1.5rem; font-weight: bold; }
+
         .logic-box { background: #ebf8ff; border: 1px solid #90cdf4; padding: 20px; border-radius: 8px; margin-bottom: 20px; color: #2c5282; }
         .logic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .formula-item { font-family: 'Courier New', monospace; background: white; padding: 10px; border-radius: 4px; border: 1px solid #bee3f8; }
+
         .ceco-group { margin-bottom: 10px; border-radius: 8px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); scroll-margin-top: 150px; transition: background-color 0.5s ease; }
         .ceco-header { background: #f8f9fa; padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; border-left: 5px solid var(--accent); }
         .ceco-header:hover { background: #edf2f7; }
         .ceco-content { display: none; padding: 10px; overflow-x: auto; }
         .ceco-content.open { display: block; }
+
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
         th { background: #f8f9fa; position: sticky; top: 0; }
+
         .highlight-select { background-color: #e0f2fe !important; animation: pulse-highlight 1.5s ease-out; }
         @keyframes pulse-highlight { 0% { background-color: #e0f2fe; } 50% { background-color: #bae6fd; } 100% { background-color: #e0f2fe; } }
+
+        .js-plotly-plot .plotly .draglayer .nsewdrag { cursor: pointer !important; }
+        .js-plotly-plot .plotly .point { cursor: pointer !important; }
+        
         .status-msg { font-size: 0.8rem; color: var(--success); font-weight: bold; margin-left: 10px; }
     </style>
 </head>
@@ -113,16 +122,20 @@
             <h3>OEE GLOBAL ACUMULADO</h3>
             <div id="dir-oee" class="value">0%</div>
         </div>
+
         <div class="section-title">OEE POR TURNO (TOTALIZADO)</div>
         <div class="grid-kpis">
             <div class="card turno-m"><h3>Mañana</h3><div id="oee-m" class="value">0%</div></div>
             <div class="card turno-t"><h3>Tarde</h3><div id="oee-t" class="value">0%</div></div>
             <div class="card turno-n"><h3>Noche</h3><div id="oee-n" class="value">0%</div></div>
         </div>
+
         <div class="section-title">OEE POR CENTRO DE COSTO</div>
         <div id="grid-ceco-kpis" class="grid-kpis"></div>
+        
         <div class="card" id="grafico-ceco-oee" style="min-height:400px; margin-bottom: 20px;"></div>
         <div class="card" id="grafico-ceco-ge" style="min-height:400px; margin-bottom: 20px;"></div>
+        
         <div class="section-title">DETALLE POR LÍNEA</div>
         <div id="contenedor-acordeon"></div>
     </div>
@@ -142,7 +155,7 @@
             </div>
         </div>
         <div class="card">
-            <table>
+            <table id="tabla-memoria-calculo">
                 <thead>
                     <tr><th>Fecha</th><th>OT</th><th>Turno</th><th>Ctro. Costo</th><th>Nominal</th><th>Producido</th><th style="background:#e0f2fe">OEE %</th><th style="background:#fef3c7">GE %</th></tr>
                 </thead>
@@ -162,19 +175,18 @@
     const USUARIO = "gpgobbi4";
     const REPO = "OEE-y-GE-Planta-RII";
 
-    // SINCRONIZACIÓN AUTOMÁTICA AL CARGAR
+    // SINCRONIZACIÓN INICIAL AUTOMÁTICA
     window.addEventListener('DOMContentLoaded', async () => {
-        document.getElementById('file-count').innerText = "⌛ Sincronizando...";
+        document.getElementById('file-count').innerText = "⌛ Sincronizando con Reservorio...";
         await cargarAnioCompleto();
         actualizarSelector();
         aplicarFiltro();
-        document.getElementById('file-count').innerText = "✅ Sincronizado";
+        document.getElementById('file-count').innerText = "✅ Reservorio Sincronizado";
     });
 
-    // LÓGICA DEL SELECTOR VISTA (ACORDEÓN POR MESES)
+    // LÓGICA DEL SELECTOR (Dropdown con meses)
     window.onclick = (e) => { if (!e.target.closest('.custom-select-container')) document.getElementById("select-dropdown").classList.remove("show"); }
     function toggleDropdown() { document.getElementById("select-dropdown").classList.toggle("show"); }
-    
     function toggleMes(id, event) { 
         event.stopPropagation(); 
         const el = document.getElementById(id);
@@ -182,7 +194,6 @@
         document.querySelectorAll('.dates-container').forEach(c => c.classList.remove('open'));
         if(!isOpen) el.classList.add('open');
     }
-
     function seleccionarFecha(valor, etiqueta) {
         filtroActual = valor;
         document.getElementById('selected-label').innerText = etiqueta;
@@ -196,7 +207,7 @@
         const fechasUnicas = [...new Set(rawDataStore.map(d => d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha))];
         
         const fechasMapeadas = fechasUnicas.map(f => {
-            const p = f.split('/');
+            const p = f.split('/'); // Formato d/m/aaaa
             return { original: f, obj: new Date(p[2], p[1]-1, p[0]) };
         }).sort((a, b) => a.obj - b.obj);
 
@@ -218,9 +229,7 @@
                             <span>▼</span>
                         </div>
                         <div id="${mesId}" class="dates-container">
-                            ${grupos[nombre].map(f => `
-                                <div class="date-option" onclick="seleccionarFecha('${f}', '${f}')">📄 ${f}</div>
-                            `).join('')}
+                            ${grupos[nombre].map(f => `<div class="date-option" onclick="seleccionarFecha('${f}', '${f}')">📄 ${f}</div>`).join('')}
                         </div>
                     </div>`;
             }
@@ -228,7 +237,7 @@
         container.innerHTML = html;
     }
 
-    // CARGA DE DATOS (RESERVORIO Y ANUAL)
+    // CARGA DE DATOS DESDE GITHUB
     async function cargarAnioCompleto() {
         const anio = "2026", meses = ["01_Enero", "02_Febrero", "03_Marzo", "04_Abril", "05_Mayo", "06_Junio", "07_Julio", "08_Agosto", "09_Septiembre", "10_Octubre", "11_Noviembre", "12_Diciembre"];
         for (let m = 0; m < meses.length; m++) {
@@ -263,8 +272,10 @@
         if(!fi) return;
         const p = fi.split("-"), m = ["01_Enero", "02_Febrero", "03_Marzo", "04_Abril", "05_Mayo", "06_Junio", "07_Julio", "08_Agosto", "09_Septiembre", "10_Octubre", "11_Noviembre", "12_Diciembre"];
         const url = `https://raw.githubusercontent.com/${USUARIO}/${REPO}/main/data/${p[0]}/${m[parseInt(p[1])-1]}/${p[2]}-${p[1]}-${p[0]}.xlsx`;
+        document.getElementById('file-count').innerText = "⌛ Buscando...";
         await fetchSilencioso(url);
         actualizarSelector(); aplicarFiltro();
+        document.getElementById('file-count').innerText = "✅ Listo.";
     }
 
     function procesarFilasDirecto(rows) {
@@ -283,7 +294,24 @@
         });
     }
 
-    // LÓGICA DE FILTRO Y CÁLCULOS
+    // INTERFAZ Y CÁLCULOS ORIGINALES
+    function showTab(e, id) {
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(e) e.currentTarget.classList.add('active');
+        window.dispatchEvent(new Event('resize'));
+    }
+
+    function toggleCeco(id) { document.getElementById(id).classList.toggle('open'); }
+
+    function resetearDatos() {
+        rawDataStore = [];
+        document.getElementById('file-count').innerText = "";
+        actualizarSelector(); aplicarFiltro();
+        alert("Datos limpiados.");
+    }
+
     function aplicarFiltro() {
         const data = filtroActual === "ALL" ? rawDataStore : rawDataStore.filter(d => (d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha) === filtroActual);
         procesarInformacion(data);
@@ -294,10 +322,15 @@
     const calcGE = (nom, prod) => nom > 0 ? (prod / (nom / 8) / 8) * 100 : 0;
 
     function procesarInformacion(data) {
-        const bodyMem = document.getElementById('body-memoria'), acordeon = document.getElementById('contenedor-acordeon'), gridCecoKpis = document.getElementById('grid-ceco-kpis');
+        const bodyMem = document.getElementById('body-memoria');
+        const acordeon = document.getElementById('contenedor-acordeon');
+        const gridCecoKpis = document.getElementById('grid-ceco-kpis');
         bodyMem.innerHTML = ""; acordeon.innerHTML = ""; gridCecoKpis.innerHTML = "";
         
-        if(data.length === 0) { document.getElementById('dir-oee').innerText = "0%"; return; }
+        if(data.length === 0) {
+            document.getElementById('dir-oee').innerText = "0%";
+            return;
+        }
 
         let globalNom = 0, globalProd = 0;
         let tStats = { "MAÑANA": {n:0, p:0}, "TARDE": {n:0, p:0}, "NOCHE": {n:0, p:0} };
@@ -308,7 +341,8 @@
             globalNom += d.nom; globalProd += d.sap;
             if(tStats[d.turno]) { tStats[d.turno].n += d.nom; tStats[d.turno].p += d.sap; }
             if(!cecoData[d.ceco]) cecoData[d.ceco] = { n: 0, p: 0, rows: [] };
-            cecoData[d.ceco].n += d.nom; cecoData[d.ceco].p += d.sap; cecoData[d.ceco].rows.push(d);
+            cecoData[d.ceco].n += d.nom; cecoData[d.ceco].p += d.sap;
+            cecoData[d.ceco].rows.push(d);
             bodyMem.innerHTML += `<tr><td>${fStr}</td><td>${d.ot}</td><td>${d.turno}</td><td>${d.ceco}</td><td>${d.nom}</td><td>${d.sap}</td><td style="font-weight:bold">${calcOEE(d.nom, d.sap).toFixed(1)}%</td><td>${calcGE(d.nom, d.sap).toFixed(1)}%</td></tr>`;
         });
 
@@ -318,45 +352,60 @@
         document.getElementById('oee-n').innerText = calcOEE(tStats["NOCHE"].n, tStats["NOCHE"].p).toFixed(1) + "%";
 
         const labels = Object.keys(cecoData).sort();
+        const oeeValues = labels.map(l => calcOEE(cecoData[l].n, cecoData[l].p).toFixed(1));
+        const geValues = labels.map(l => calcGE(cecoData[l].n, cecoData[l].p).toFixed(1));
+
         labels.forEach((ceco, i) => {
-            const oee = calcOEE(cecoData[ceco].n, cecoData[ceco].p).toFixed(1);
-            const ge = calcGE(cecoData[ceco].n, cecoData[ceco].p).toFixed(1);
-            gridCecoKpis.innerHTML += `<div class="card ceco-card"><h3>${ceco}</h3><div class="value">${oee}%</div></div>`;
+            gridCecoKpis.innerHTML += `<div class="card ceco-card"><h3>${ceco}</h3><div class="value">${oeeValues[i]}%</div></div>`;
+            let rowHtml = cecoData[ceco].rows.map(r => `<tr><td>${r.fecha instanceof Date ? r.fecha.toLocaleDateString() : r.fecha}</td><td>${r.ot}</td><td>${r.turno}</td><td>${r.n_art} - ${r.articulo}</td><td>${r.nom}</td><td>${r.sap}</td><td style="font-weight:bold; color:var(--primary)">${calcOEE(r.nom, r.sap).toFixed(1)}%</td><td style="font-weight:bold; color:var(--t)">${calcGE(r.nom, r.sap).toFixed(1)}%</td></tr>`).join('');
             acordeon.innerHTML += `
                 <div class="ceco-group" id="scroll-${ceco.replace(/\s+/g, '')}">
-                    <div class="ceco-header" onclick="toggleCeco('ceco-${i}')"><span>${ceco}</span><span>OEE: ${oee}% | GE: ${ge}% ▾</span></div>
+                    <div class="ceco-header" onclick="toggleCeco('ceco-${i}')">
+                        <span>${ceco}</span>
+                        <span>OEE: ${oeeValues[i]}% | GE: ${geValues[i]}% ▾</span>
+                    </div>
                     <div id="ceco-${i}" class="ceco-content">
-                        <table><thead><tr><th>Fecha</th><th>OT</th><th>Turno</th><th>Código - Artículo</th><th>Nominal</th><th>Producido</th><th>OEE</th><th>GE</th></tr></thead>
-                        <tbody>${cecoData[ceco].rows.map(r => `<tr><td>${r.fecha instanceof Date ? r.fecha.toLocaleDateString() : r.fecha}</td><td>${r.ot}</td><td>${r.turno}</td><td>${r.n_art} - ${r.articulo}</td><td>${r.nom}</td><td>${r.sap}</td><td>${calcOEE(r.nom, r.sap).toFixed(1)}%</td><td>${calcGE(r.nom, r.sap).toFixed(1)}%</td></tr>`).join('')}</tbody></table>
+                        <table>
+                            <thead><tr><th>Fecha</th><th>OT</th><th>Turno</th><th>Código - Artículo</th><th>Nominal</th><th>Producido</th><th style="color:var(--primary)">OEE</th><th style="color:var(--t)">GE</th></tr></thead>
+                            <tbody>${rowHtml}</tbody>
+                        </table>
                     </div>
                 </div>`;
         });
-        renderGrafico('grafico-ceco-oee', 'OEE POR CENTRO DE COSTO', labels, labels.map(l => calcOEE(cecoData[l].n, cecoData[l].p).toFixed(1)), '#1a2a6c');
-        renderGrafico('grafico-ceco-ge', 'GE POR CENTRO DE COSTO', labels, labels.map(l => calcGE(cecoData[l].n, cecoData[l].p).toFixed(1)), '#e67e22');
+
+        renderGrafico('grafico-ceco-oee', 'OEE POR CENTRO DE COSTO (ACUMULADO)', labels, oeeValues, '#1a2a6c');
+        renderGrafico('grafico-ceco-ge', 'GE POR CENTRO DE COSTO (ACUMULADO)', labels, geValues, '#e67e22');
     }
 
     function renderGrafico(id, titulo, x, y, color) {
-        Plotly.newPlot(id, [{ x, y, type: 'bar', marker: {color}, text: y.map(v=>v+'%'), textposition: 'auto' }], { title: titulo });
-        document.getElementById(id).on('plotly_click', (data) => {
-            const target = document.getElementById('scroll-' + data.points[0].x.replace(/\s+/g, ''));
-            if(target) { target.scrollIntoView({ behavior: 'smooth' }); target.querySelector('.ceco-content').classList.add('open'); }
+        const data = [{ x: x, y: y, type: 'bar', marker: {color: color}, text: y.map(v=>v+'%'), textposition: 'auto' }];
+        Plotly.newPlot(id, data, { title: titulo });
+        
+        // INTERACTIVO: CURSOR MANITO Y VINCULACIÓN CON ACORDEÓN
+        document.getElementById(id).on('plotly_click', function(data){
+            const nombreCeco = data.points[0].x;
+            const targetId = 'scroll-' + nombreCeco.replace(/\s+/g, '');
+            const target = document.getElementById(targetId);
+            
+            document.querySelectorAll('.ceco-group').forEach(el => el.classList.remove('highlight-select'));
+            if(target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+                const content = target.querySelector('.ceco-content');
+                if(!content.classList.contains('open')) content.classList.add('open');
+                target.classList.add('highlight-select');
+                setTimeout(() => { target.classList.remove('highlight-select'); }, 1500);
+            }
         });
     }
 
-    // UTILIDADES
-    function showTab(e, id) {
-        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        if(e) e.currentTarget.classList.add('active');
-        window.dispatchEvent(new Event('resize'));
-    }
-    function toggleCeco(id) { document.getElementById(id).classList.toggle('open'); }
-    function resetearDatos() { rawDataStore = []; actualizarSelector(); aplicarFiltro(); }
     function renderTablaOriginal(data) {
-        let h = `<table><thead><tr><th>Fecha</th><th>Turno</th><th>SAP</th><th>OT</th><th>N° Art</th><th>Articulo</th><th>NOM</th><th>CECO</th></tr></thead><tbody>`;
-        data.forEach(d => h += `<tr><td>${d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha}</td><td>${d.turno}</td><td>${d.sap}</td><td>${d.ot}</td><td>${d.n_art}</td><td>${d.articulo}</td><td>${d.nom}</td><td>${d.ceco}</td></tr>`);
-        document.getElementById('out-tabla').innerHTML = h + `</tbody></table>`;
+        if(data.length === 0) { document.getElementById('out-tabla').innerHTML = "No hay datos."; return; }
+        let html = `<table><thead><tr><th>Fecha</th><th>Turno</th><th>SAP</th><th>OT</th><th>N° Art</th><th>Articulo</th><th>NOM</th><th>CECO</th></tr></thead><tbody>`;
+        data.forEach(d => {
+            const fStr = d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha;
+            html += `<tr><td>${fStr}</td><td>${d.turno}</td><td>${d.sap}</td><td>${d.ot}</td><td>${d.n_art}</td><td>${d.articulo}</td><td>${d.nom}</td><td>${d.ceco}</td></tr>`;
+        });
+        document.getElementById('out-tabla').innerHTML = html + `</tbody></table>`;
     }
 </script>
 </body>
