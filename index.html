@@ -64,8 +64,8 @@
         .highlight-select { background-color: #e0f2fe !important; animation: pulse-highlight 1.5s ease-out; }
         @keyframes pulse-highlight { 0% { background-color: #e0f2fe; } 50% { background-color: #bae6fd; } 100% { background-color: #e0f2fe; } }
 
-        .js-plotly-plot .plotly .draglayer .nsewdrag { cursor: pointer !important; }
-        .js-plotly-plot .plotly .point { cursor: pointer !important; }
+        /* CORRECCIÓN DE CURSORES PARA INTERACTIVIDAD */
+        .js-plotly-plot .plotly .draglayer .nsewdrag, .js-plotly-plot .plotly .point { cursor: pointer !important; }
         
         .status-msg { font-size: 0.8rem; color: var(--success); font-weight: bold; margin-left: 10px; }
     </style>
@@ -152,11 +152,52 @@
     const USUARIO = "gpgobbi4";
     const REPO = "OEE-y-GE-Planta-RII";
 
+    // CARGA AUTOMÁTICA AL INICIAR
+    window.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('file-count').innerText = "⌛ Sincronizando datos...";
+        await cargarAnioCompleto();
+        actualizarSelector();
+        aplicarFiltro(); // Muestra el consolidado automáticamente
+        document.getElementById('file-count').innerText = "✅ Datos actualizados";
+    });
+
+    async function cargarAnioCompleto() {
+        const anio = "2026";
+        const meses = ["01_Enero", "02_Febrero", "03_Marzo", "04_Abril", "05_Mayo", "06_Junio", "07_Julio", "08_Agosto", "09_Septiembre", "10_Octubre", "11_Noviembre", "12_Diciembre"];
+        
+        for (let m = 0; m < meses.length; m++) {
+            const mesNum = String(m + 1).padStart(2, '0');
+            // Intentar cargar archivos del 1 al 31 de cada mes de forma eficiente
+            const promesas = [];
+            for (let d = 1; d <= 31; d++) {
+                const dia = String(d).padStart(2, '0');
+                const url = `https://raw.githubusercontent.com/${USUARIO}/${REPO}/main/data/${anio}/${meses[m]}/${dia}-${mesNum}-${anio}.xlsx`;
+                promesas.push(fetchSilencioso(url));
+            }
+            await Promise.all(promesas);
+        }
+    }
+
+    async function fetchSilencioso(url) {
+        try {
+            const response = await fetch(url);
+            if(response.ok) {
+                const buffer = await response.arrayBuffer();
+                const wb = XLSX.read(new Uint8Array(buffer), {type: 'array', cellDates: true});
+                const sheet = wb.Sheets["CPRII"];
+                if(sheet) {
+                    const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""});
+                    procesarFilasDirecto(rows);
+                }
+            }
+        } catch (e) {}
+    }
+
     async function cargarDesdeReservorio() {
         const fechaInput = document.getElementById('fecha-reservorio').value;
         if(!fechaInput) { alert("Elige una fecha."); return; }
 
-        const partes = fechaInput.split("-"); // [2026, 03, 03]
+        const partes = fechaInput.split("-"); 
         const anio = partes[0];
         const mesNum = partes[1];
         const dia = partes[2];
@@ -164,7 +205,6 @@
         const meses = ["01_Enero", "02_Febrero", "03_Marzo", "04_Abril", "05_Mayo", "06_Junio", "07_Julio", "08_Agosto", "09_Septiembre", "10_Octubre", "11_Noviembre", "12_Diciembre"];
         const nombreMes = meses[parseInt(mesNum) - 1];
         
-        // CORRECCIÓN DE RUTA: Eliminada la carpeta /main/ y ajustado el orden estricto
         const filename = `${dia}-${mesNum}-${anio}.xlsx`;
         const url = `https://raw.githubusercontent.com/${USUARIO}/${REPO}/main/data/${anio}/${nombreMes}/${filename}`;
 
@@ -172,24 +212,20 @@
 
         try {
             const response = await fetch(url);
-            if(!response.ok) throw new Error("Archivo no encontrado en el servidor.");
+            if(!response.ok) throw new Error("Archivo no encontrado.");
             
             const buffer = await response.arrayBuffer();
-            const data = new Uint8Array(buffer);
-            const wb = XLSX.read(data, {type: 'array', cellDates: true});
+            const wb = XLSX.read(new Uint8Array(buffer), {type: 'array', cellDates: true});
             const sheet = wb.Sheets["CPRII"];
             
-            if(!sheet) throw new Error("La hoja 'CPRII' no existe en este archivo.");
-
-            const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""});
-            procesarFilasDirecto(rows); 
+            if(!sheet) throw new Error("La hoja 'CPRII' no existe.");
+            procesarFilasDirecto(XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""})); 
             
             document.getElementById('file-count').innerText = `✅ Cargado: ${filename}`;
             actualizarSelector();
             aplicarFiltro();
         } catch (e) {
-            alert(`Error: No se encontró el archivo en la ruta:\n${url}`);
-            document.getElementById('file-count').innerText = "❌ Error.";
+            alert(`Error al cargar: ${filename}`);
         }
     }
 
@@ -227,7 +263,6 @@
         document.getElementById('file-count').innerText = "";
         document.getElementById('fecha-selector').innerHTML = '<option value="ALL">CONSOLIDADO TOTAL</option>';
         aplicarFiltro();
-        alert("Datos limpiados.");
     }
 
     document.getElementById('upload').addEventListener('change', async function(e) {
@@ -249,9 +284,10 @@
                 const data = new Uint8Array(evt.target.result);
                 const wb = XLSX.read(data, {type: 'array', cellDates: true});
                 const sheet = wb.Sheets["CPRII"];
-                if(!sheet) { resolve(); return; }
-                const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""});
-                procesarFilasDirecto(rows);
+                if(sheet) {
+                    const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: true, defval: ""});
+                    procesarFilasDirecto(rows);
+                }
                 resolve();
             };
             reader.readAsArrayBuffer(file);
@@ -261,7 +297,11 @@
     function actualizarSelector() {
         const selector = document.getElementById('fecha-selector');
         const fechas = [...new Set(rawDataStore.map(d => d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha))];
-        fechas.sort((a,b) => new Date(a) - new Date(b));
+        fechas.sort((a,b) => {
+            const [d1, m1, y1] = a.split('/');
+            const [d2, m2, y2] = b.split('/');
+            return new Date(y1, m1-1, d1) - new Date(y2, m2-1, d2);
+        });
         selector.innerHTML = '<option value="ALL">CONSOLIDADO TOTAL</option>';
         fechas.forEach(f => selector.innerHTML += `<option value="${f}">${f}</option>`);
     }
@@ -284,6 +324,9 @@
         
         if(data.length === 0) {
             document.getElementById('dir-oee').innerText = "0%";
+            document.getElementById('oee-m').innerText = "0%";
+            document.getElementById('oee-t').innerText = "0%";
+            document.getElementById('oee-n').innerText = "0%";
             return;
         }
 
