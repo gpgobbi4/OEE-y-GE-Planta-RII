@@ -26,7 +26,6 @@
         header { background: var(--primary); color: white; padding: 15px; text-align: center; }
         .controls-bar { background: #fff; padding: 15px; display: flex; justify-content: center; gap: 20px; align-items: center; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 1000; flex-wrap: wrap; }
         
-        /* ESTILOS NUEVOS PARA EL SELECTOR AGRUPADO (Respetando tu estética) */
         .custom-select-container { position: relative; min-width: 250px; }
         .select-trigger { padding: 8px 15px; border-radius: 6px; border: 2px solid var(--primary); font-weight: bold; color: var(--primary); cursor: pointer; background: white; display: flex; justify-content: space-between; align-items: center; }
         .select-dropdown { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 400px; overflow-y: auto; z-index: 2000; }
@@ -175,7 +174,6 @@
     const USUARIO = "gpgobbi4";
     const REPO = "OEE-y-GE-Planta-RII";
 
-    // SINCRONIZACIÓN INICIAL AUTOMÁTICA
     window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('file-count').innerText = "⌛ Sincronizando con Reservorio...";
         await cargarAnioCompleto();
@@ -184,9 +182,9 @@
         document.getElementById('file-count').innerText = "✅ Reservorio Sincronizado";
     });
 
-    // LÓGICA DEL SELECTOR (Dropdown con meses)
     window.onclick = (e) => { if (!e.target.closest('.custom-select-container')) document.getElementById("select-dropdown").classList.remove("show"); }
     function toggleDropdown() { document.getElementById("select-dropdown").classList.toggle("show"); }
+    
     function toggleMes(id, event) { 
         event.stopPropagation(); 
         const el = document.getElementById(id);
@@ -194,10 +192,17 @@
         document.querySelectorAll('.dates-container').forEach(c => c.classList.remove('open'));
         if(!isOpen) el.classList.add('open');
     }
+
     function seleccionarFecha(valor, etiqueta) {
         filtroActual = valor;
         document.getElementById('selected-label').innerText = etiqueta;
         document.getElementById("select-dropdown").classList.remove("show");
+        aplicarFiltro();
+    }
+
+    function seleccionarMes(nombreMes, etiqueta) {
+        filtroActual = { tipo: 'MES', valor: nombreMes };
+        document.getElementById('selected-label').innerText = etiqueta;
         aplicarFiltro();
     }
 
@@ -207,7 +212,7 @@
         const fechasUnicas = [...new Set(rawDataStore.map(d => d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha))];
         
         const fechasMapeadas = fechasUnicas.map(f => {
-            const p = f.split('/'); // Formato d/m/aaaa
+            const p = f.split('/'); 
             return { original: f, obj: new Date(p[2], p[1]-1, p[0]) };
         }).sort((a, b) => a.obj - b.obj);
 
@@ -224,7 +229,7 @@
                 const mesId = `mes-group-${i}`;
                 html += `
                     <div class="month-group">
-                        <div class="month-label" onclick="toggleMes('${mesId}', event)">
+                        <div class="month-label" onclick="toggleMes('${mesId}', event); seleccionarMes('${nombre}', '${nombre.toUpperCase()}')">
                             <span>📂 ${nombre.toUpperCase()}</span>
                             <span>▼</span>
                         </div>
@@ -237,7 +242,6 @@
         container.innerHTML = html;
     }
 
-    // CARGA DE DATOS DESDE GITHUB
     async function cargarAnioCompleto() {
         const anio = "2026", meses = ["01_Enero", "02_Febrero", "03_Marzo", "04_Abril", "05_Mayo", "06_Junio", "07_Julio", "08_Agosto", "09_Septiembre", "10_Octubre", "11_Noviembre", "12_Diciembre"];
         for (let m = 0; m < meses.length; m++) {
@@ -294,7 +298,6 @@
         });
     }
 
-    // INTERFAZ Y CÁLCULOS ORIGINALES
     function showTab(e, id) {
         document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -313,7 +316,20 @@
     }
 
     function aplicarFiltro() {
-        const data = filtroActual === "ALL" ? rawDataStore : rawDataStore.filter(d => (d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha) === filtroActual);
+        const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        let data;
+        
+        if (filtroActual === "ALL") {
+            data = rawDataStore;
+        } else if (typeof filtroActual === 'object' && filtroActual.tipo === 'MES') {
+            data = rawDataStore.filter(d => {
+                const fObj = d.fecha instanceof Date ? d.fecha : new Date(d.fecha.split('/')[2], d.fecha.split('/')[1]-1, d.fecha.split('/')[0]);
+                return mesesNombres[fObj.getMonth()] === filtroActual.valor;
+            });
+        } else {
+            data = rawDataStore.filter(d => (d.fecha instanceof Date ? d.fecha.toLocaleDateString() : d.fecha) === filtroActual);
+        }
+        
         procesarInformacion(data);
         renderTablaOriginal(data);
     }
@@ -329,6 +345,9 @@
         
         if(data.length === 0) {
             document.getElementById('dir-oee').innerText = "0%";
+            document.getElementById('oee-m').innerText = "0%";
+            document.getElementById('oee-t').innerText = "0%";
+            document.getElementById('oee-n').innerText = "0%";
             return;
         }
 
@@ -373,20 +392,17 @@
                 </div>`;
         });
 
-        renderGrafico('grafico-ceco-oee', 'OEE POR CENTRO DE COSTO (ACUMULADO)', labels, oeeValues, '#1a2a6c');
-        renderGrafico('grafico-ceco-ge', 'GE POR CENTRO DE COSTO (ACUMULADO)', labels, geValues, '#e67e22');
+        renderGrafico('grafico-ceco-oee', 'OEE POR CENTRO DE COSTO', labels, oeeValues, '#1a2a6c');
+        renderGrafico('grafico-ceco-ge', 'GE POR CENTRO DE COSTO', labels, geValues, '#e67e22');
     }
 
     function renderGrafico(id, titulo, x, y, color) {
         const data = [{ x: x, y: y, type: 'bar', marker: {color: color}, text: y.map(v=>v+'%'), textposition: 'auto' }];
         Plotly.newPlot(id, data, { title: titulo });
-        
-        // INTERACTIVO: CURSOR MANITO Y VINCULACIÓN CON ACORDEÓN
         document.getElementById(id).on('plotly_click', function(data){
             const nombreCeco = data.points[0].x;
             const targetId = 'scroll-' + nombreCeco.replace(/\s+/g, '');
             const target = document.getElementById(targetId);
-            
             document.querySelectorAll('.ceco-group').forEach(el => el.classList.remove('highlight-select'));
             if(target) {
                 target.scrollIntoView({ behavior: 'smooth' });
